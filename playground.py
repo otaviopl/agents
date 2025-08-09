@@ -15,22 +15,29 @@ from agno.models.openai import OpenAIChat
 from agno.playground import Playground
 
 from src.core.config import get_settings
+from src.agents.doc_researcher import DocResearcher
+from src.agents.support_diagnoser import SupportDiagnoser
+from src.workflows.support_workflow import SupportWorkflow
 
 # ---------------------------------------------------------------------------
 # Configurações
 # ---------------------------------------------------------------------------
 settings = get_settings()
 
-# Cria o agente utilizando o mesmo prompt principal do DocResearcher
-agent = Agent(
-    name="doc_researcher",
-    model=OpenAIChat(id=settings.openai_model),
-    instructions=settings.agent_instructions,
-    markdown=True,
+# Instâncias reutilizadas
+doc_researcher = DocResearcher(settings)
+support_diagnoser = SupportDiagnoser(settings)
+
+# Workflow
+support_workflow = SupportWorkflow(
+    support_diagnoser=support_diagnoser,
+    doc_researcher=doc_researcher,
 )
 
-# Cria o playground e expõe o FastAPI app
-playground = Playground(agents=[agent])
+agent = doc_researcher.agent  # Agente interno já configurado
+
+# Cria o playground incluindo o workflow de suporte
+playground = Playground(agents=[agent], workflows=[support_workflow])
 app = playground.get_app()
 
 
