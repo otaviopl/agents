@@ -10,7 +10,7 @@ from src.core.config import Settings
 from src.core.logging import setup_logging
 from src.services import retriever_local
 from src.agents.doc_researcher import DocResearcher
-from src.app.deps import doc_researcher, local_index, settings
+from src.app.deps import doc_researcher, local_index, settings, support_diagnoser
 
 
 setup_logging(settings().log_level)
@@ -36,7 +36,12 @@ def ask(
     agent: DocResearcher = Depends(doc_researcher),
     index = Depends(local_index),
     settings: Settings = Depends(settings),
+    support_agent: SupportDiagnoser = Depends(support_diagnoser),
 ) -> AskResponse:
+    # Save request
+    with open("docs/requests.log", "a") as f:
+        f.write(req.model_dump_json() + "\n")
+
     query = (req.query or "").strip()
     if not query:
         raise HTTPException(status_code=400, detail="Query must not be empty")
@@ -55,7 +60,13 @@ def ask(
         data = agent.handle_local(query, passages_text, sources_local)
         return AskResponse(answer=data.get("answer", ""), sources=data.get("sources", []))
 
-    return AskResponse(answer="Não foram encontrados resultados para a sua pesquisa.", sources=[])
+    else:
+        # Call the support diagnoser agent
+        diagnosis_response = support_agent.diagnose(query)
+        return AskResponse(
+            answer=diagnosis_response.get("answer", "Não foi possível diagnosticar o problema."),
+            sources=diagnosis_response.get("sources", [])
+        )
 
 
 @app.get("/stats")

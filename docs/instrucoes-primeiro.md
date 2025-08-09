@@ -129,3 +129,44 @@ Exemplo:
 
 > 💡 Sugestão: A tarefa menciona "página de resgate", mas não inclui logo, itens a exibir ou comunicação inicial. Verifique os requisitos nesta página do Notion: Base de Requisitos Técnicos – Página de Resgate
 >
+
+### **O que são Views e Filters?**
+
+🔹 **View (Visualização)** → Uma forma específica de ver os dados de uma tabela. Você pode ter diferentes Views para diferentes necessidades, como:
+
+- 📌 Envios de uma empresa específica
+- ☑️ Envios com determinado pacote
+- 📆 Clientes que são de determinada empresa
+
+🔹 **Filter (Filtro)** → Define quais registros aparecem em cada View. Alguns exemplos:
+
+- 🚛 Mostrar apenas envios pendentes
+- ✅ Exibir apenas pacotes entregues
+- 📅 Filtrar por uma data de envio específica
+
+### Configurando um filtro:
+
+Na interface de compras, nós temos esses filtros
+
+![image.png](attachment:620c2914-0a68-4bed-82be-08643beb9b58:image.png)
+
+Vamos supor que eu quero analisar Pedidos ( nossa tabela ) que são apenas de um cliente específico. Para isso precisamos achar o campo que tem esse controle.
+
+![image.png](attachment:2d80c022-0e81-4092-ab1e-3d917bc5e361:image.png)
+
+Nesse caso eu crio um filtro para o campo alvo e coloco apenas o valor desejado: “Aliança Navegação e Logística Ltda” e clico em “Apply”.
+
+![image.png](attachment:010e9abd-06ee-464c-827a-919f38bb14b7:image.png)
+
+📌 **Importante sobre filtros:**
+
+Os filtros permitem segmentar os dados de forma precisa, mas é essencial conferir a lógica dos operadores:
+
+- **AND (E)** → Mostra apenas registros que atendem a **todas** as condições aplicadas.
+    - Exemplo: Mostrar envios de uma empresa específica **e** que tenham um pacote específico.
+- **OR (OU)** → Mostra registros que atendem a **pelo menos uma** das condições.
+    - Exemplo: Mostrar envios de uma empresa **ou** envios com um determinado pacote.
+
+🎯 **Resumo:**
+
+As Views ajudam a visualizar os dados de diferentes formas, enquanto os Filters determinam o que será mostrado em cada uma. Sempre revise a lógica dos filtros para garantir que os dados estejam sendo filtrados corretamente.

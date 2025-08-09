@@ -28,10 +28,17 @@ When you answer, you should always cite your sources.
 
 If you can't find an answer, you should say so.
 """
+    support_agent_instructions: str = """You are a Level 2 support agent. Your main goal is to diagnose support issues by searching the web.
+
+You should provide a concise diagnosis and cite your sources from the web.
+
+If you cannot diagnose the issue, you should say so.
+"""
 
     openai_api_key: Optional[str] = None
     openai_base_url: str = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
     openai_model: str = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
+    n8n_webhook_url: Optional[str] = None
 
 
 def get_settings() -> Settings:
@@ -52,9 +59,17 @@ When you answer, you should always cite your sources.
 
 If you can't find an answer, you should say so.
 """)
+    support_agent_instructions = os.getenv("SUPPORT_AGENT_INSTRUCTIONS", """You are a Level 2 support agent. Your main goal is to diagnose support issues by searching the web.
+
+You should provide a concise diagnosis and cite your sources from the web.
+
+If you cannot diagnose the issue, you should say so.
+""")
+
     openai_api_key = os.getenv("OPENAI_API_KEY")
     openai_base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
     openai_model = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
+    n8n_webhook_url = os.getenv("N8N_WEBHOOK_URL")
 
     return Settings(
         docs_dir=docs_dir,
@@ -64,8 +79,10 @@ If you can't find an answer, you should say so.
         api_port=api_port,
         allowed_domains=allowed_domains,
         agent_instructions=agent_instructions,
+        support_agent_instructions=support_agent_instructions,
         openai_api_key=openai_api_key,
         openai_base_url=openai_base_url,
         openai_model=openai_model,
+        n8n_webhook_url=n8n_webhook_url,
     )
 

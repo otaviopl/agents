@@ -76,19 +76,55 @@ def _chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = OVERLAP)
     return chunks
 
 
-def build_or_load_index(docs_dir: str, index_path: str = ".local_index.pkl") -> Dict:
+def build_or_load_index(
+    docs_dir: str,
+    index_path: str = ".local_index.pkl",
+    force_rebuild: bool = False,
+) -> Dict:
+    """Load a previously built local index or (re)build it.
+
+    The index is automatically rebuilt if:
+    1. ``force_rebuild`` is explicitly set to ``True``; or
+    2. Any markdown file inside ``docs_dir`` was modified after the index file
+       was created.
+    """
+
     index_file = Path(index_path)
-    if index_file.exists():
+    docs_path = Path(docs_dir)
+
+    # Gather markdown files *before* deciding to load the index so we can
+    # compare modification times when necessary.
+    md_files = list(docs_path.glob("**/*.md"))
+
+    latest_doc_mtime: float = 0.0
+    if md_files:
+        latest_doc_mtime = max(fp.stat().st_mtime for fp in md_files)
+
+    should_rebuild = force_rebuild
+    if index_file.exists() and not force_rebuild:
         try:
-            with index_file.open("rb") as f:
-                data = pickle.load(f)
-            LOGGER.info("Local index loaded: %s", index_file)
-            return data
+            index_mtime = index_file.stat().st_mtime
+            # Rebuild if any markdown was updated after the index file.
+            if latest_doc_mtime > index_mtime:
+                LOGGER.info("Docs changed after index build (index: %s, docs: %s). Rebuilding index.", index_mtime, latest_doc_mtime)
+                should_rebuild = True
+            else:
+                with index_file.open("rb") as f:
+                    data = pickle.load(f)
+                LOGGER.info("Local index loaded: %s", index_file)
+                return data
         except Exception:
             LOGGER.warning("Failed to load index, rebuilding.")
+            should_rebuild = True
 
-    docs_path = Path(docs_dir)
-    md_files = list(docs_path.glob("**/*.md"))
+    if not md_files:
+        LOGGER.info("No markdown files found in %s", docs_dir)
+
+    # If we reached this point, we need to build the index (first time or rebuild).
+
+    if should_rebuild:
+        LOGGER.info("Building local index from %s", docs_dir)
+
     passages: List[str] = []
     meta: List[Tuple[str, str, int]] = []  # (path, title, chunk_id)
 
@@ -101,7 +137,7 @@ def build_or_load_index(docs_dir: str, index_path: str = ".local_index.pkl") -> 
             meta.append((str(fp), title, idx))
 
     if not passages:
-        LOGGER.info("No markdown files found in %s", docs_dir)
+        LOGGER.info("No passages extracted from markdown in %s", docs_dir)
 
     vectorizer = TfidfVectorizer(ngram_range=(1, 2))
     matrix = vectorizer.fit_transform(passages)

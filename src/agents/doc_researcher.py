@@ -35,7 +35,8 @@ class DocResearcher:
         prompt = (
             "Contexto:\n" + context + "\n\n" +
             "Pergunta: " + query + "\n" +
-            "Instruções: Responda apenas com base no Contexto. Retorne JSON: {\"answer\": string, \"sources\": string[]}"
+            "Instruções: Responda apenas com base no Contexto e sempre em Português do Brasil. "
+            "Retorne JSON: {\"answer\": string, \"sources\": string[]}"
         )
 
         response = self.agent.run(prompt)
