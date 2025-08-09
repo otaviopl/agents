@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+agno
+scikit-learn
+markdown-it-py
+duckduckgo-search<6.0.0
+python-dotenv
+numpy
+packaging
+httpx
