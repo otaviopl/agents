@@ -88,19 +88,16 @@ def ask(
         )
 
 
-@app.post("/workflows/support/run", response_model=SupportWorkflowResponse)
+@app.post("/workflows/support/run", response_model=SupportWorkflowOutput)
 def run_support_workflow(
-    req: SupportWorkflowRequest,
-    workflow: SupportWorkflow = Depends(support_workflow),
-) -> SupportWorkflowResponse:
-    try:
-        result = workflow.run(req)
-        return SupportWorkflowResponse(**result.model_dump())
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    except Exception as exc:  # pragma: no cover - unexpected errors
-        logger.error("Support workflow failed: %s", exc)
-        raise HTTPException(status_code=500, detail="Workflow execution failed")
+    req: SupportWorkflowInput,
+    wf = Depends(support_workflow),
+):
+    if req is None or not req.query.strip():
+        raise HTTPException(status_code=400, detail="query must not be empty")
+
+    result = wf.run(req)
+    return result
 
 
 @app.get("/stats")

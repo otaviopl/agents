@@ -30,9 +30,10 @@ LOGGER = logging.getLogger(__name__)
 
 
 class SupportWorkflowInput(BaseModel):
-    """Input for running the workflow."""
+    """Entrada para o SupportWorkflow."""
 
-    query: str
+    query: str = Field(..., title="Pergunta/Incidente", description="Ex: 'Erro ao emitir NF no n8n'")
+    session_id: Optional[str] = Field(None, title="Session ID (opcional)")
 
 
 class SupportWorkflowOutput(BaseModel):
@@ -47,6 +48,10 @@ class SupportWorkflowOutput(BaseModel):
 
 class SupportWorkflow(Workflow):
     """Workflow that combines SupportDiagnoser and DocResearcher."""
+
+    # Define explicit models for Playground introspection
+    input_model = SupportWorkflowInput
+    output_model = SupportWorkflowOutput
 
     def __init__(
         self,

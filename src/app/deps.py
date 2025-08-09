@@ -41,19 +41,12 @@ def support_diagnoser() -> SupportDiagnoser:
     return SupportDiagnoser(s)
 
 
+# SupportWorkflow provider
 @lru_cache(maxsize=1)
-def support_workflow() -> SupportWorkflow:
-    """Return a cached instance of SupportWorkflow."""
-    storage = None
-    if SqliteStorage is not None:
-        storage = SqliteStorage(
-            table_name="support_workflow",
-            db_file="support_workflow.db",
-            mode="workflow",
-        )
+def support_workflow():
+    s = settings()
     return SupportWorkflow(
-        support_diagnoser=support_diagnoser(),
-        doc_researcher=doc_researcher(),
-        storage=storage,
+        support_diagnoser=SupportDiagnoser(s),
+        doc_researcher=DocResearcher(s),
     )
 
