@@ -10,7 +10,18 @@ from src.core.config import Settings
 from src.core.logging import setup_logging
 from src.services import retriever_local
 from src.agents.doc_researcher import DocResearcher
-from src.app.deps import doc_researcher, local_index, settings, support_diagnoser
+from src.app.deps import (
+    doc_researcher,
+    local_index,
+    settings,
+    support_diagnoser,
+    support_workflow,
+)
+from src.workflows.support_workflow import (
+    SupportWorkflow,
+    SupportWorkflowInput,
+    SupportWorkflowOutput,
+)
 
 
 setup_logging(settings().log_level)
@@ -25,6 +36,14 @@ class AskRequest(BaseModel):
 class AskResponse(BaseModel):
     answer: str
     sources: List[str]
+
+
+class SupportWorkflowRequest(SupportWorkflowInput):
+    pass
+
+
+class SupportWorkflowResponse(SupportWorkflowOutput):
+    pass
 
 
 app = FastAPI(title="Agno Doc Bot", version="0.2.0")
@@ -67,6 +86,21 @@ def ask(
             answer=diagnosis_response.get("answer", "Não foi possível diagnosticar o problema."),
             sources=diagnosis_response.get("sources", [])
         )
+
+
+@app.post("/workflows/support/run", response_model=SupportWorkflowResponse)
+def run_support_workflow(
+    req: SupportWorkflowRequest,
+    workflow: SupportWorkflow = Depends(support_workflow),
+) -> SupportWorkflowResponse:
+    try:
+        result = workflow.run(req)
+        return SupportWorkflowResponse(**result.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:  # pragma: no cover - unexpected errors
+        logger.error("Support workflow failed: %s", exc)
+        raise HTTPException(status_code=500, detail="Workflow execution failed")
 
 
 @app.get("/stats")

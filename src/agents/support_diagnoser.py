@@ -39,21 +39,21 @@ class SupportDiagnoser:
             "Return JSON: {\"answer\": string, \"sources\": string[]}"
         )
 
-        response = self.agent.run(prompt)
-        content = getattr(response, "content", str(response)).strip()
-
-        # Similar JSON parsing logic as in DocResearcher
-        if content.startswith("```"):
-            content = content.strip("` ")
-            if content.lower().startswith("json"):
-                content = content[4:].strip()
-            if content.endswith("```"):
-                content = content[:-3].strip()
         try:
+            response = self.agent.run(prompt)
+            content = getattr(response, "content", str(response)).strip()
+
+            # Similar JSON parsing logic as in DocResearcher
+            if content.startswith("```"):
+                content = content.strip("` ")
+                if content.lower().startswith("json"):
+                    content = content[4:].strip()
+                if content.endswith("```"):
+                    content = content[:-3].strip()
             data = json.loads(content)
             if not isinstance(data, dict) or "answer" not in data or "sources" not in data:
                 raise ValueError("Invalid JSON fields")
             return data
-        except Exception:
-            LOGGER.error("Failed to parse JSON response from SupportDiagnoser: %s", content)
-            return {"answer": content, "sources": []}
+        except Exception as exc:
+            LOGGER.error("SupportDiagnoser failed: %s", exc)
+            return {"answer": "Diagnóstico indisponível", "sources": []}

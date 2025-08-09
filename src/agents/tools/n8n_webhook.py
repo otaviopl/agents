@@ -15,7 +15,11 @@ class N8nWebhookTool(Toolkit):
         self.settings = settings
 
         # Registra a ferramenta (função) no Toolkit
-        super().__init__(name="n8n_webhook", tools=[self.get_error_logs])
+        tool = self.get_error_logs
+        entry = getattr(tool, "entrypoint", tool)
+        if hasattr(tool, "name") and not hasattr(entry, "__name__"):
+            setattr(entry, "__name__", tool.name)  # type: ignore[attr-defined]
+        super().__init__(name="n8n_webhook", tools=[entry])
 
     @tool(name="get_n8n_error_logs", description="Recupera logs de erro do webhook n8n configurado em N8N_WEBHOOK_URL")
     def get_error_logs(self) -> str:  # type: ignore[override]

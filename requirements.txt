@@ -8,3 +8,4 @@ python-dotenv
 numpy
 packaging
 httpx
+sqlalchemy
