@@ -2,6 +2,15 @@
 
 from __future__ import annotations
 
+# Allow running this script directly without installing the package
+import sys
+from pathlib import Path
+
+# Add the project root ('agno-doc-bot') to PYTHONPATH if not already present
+ROOT_DIR = Path(__file__).resolve().parents[2]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.append(str(ROOT_DIR))
+
 import json
 import logging
 from typing import List, Optional
@@ -51,7 +60,15 @@ class SupportWorkflow(Workflow):
         self.doc_researcher = doc_researcher
 
     def run(self, input: SupportWorkflowInput) -> SupportWorkflowOutput:  # type: ignore[override]
-        """Run the workflow for a support query."""
+        """Run the workflow for a support query.
+
+        Estratégia:
+        1. Tentar responder usando a documentação local (DocResearcher).
+        2. Se não houver contexto suficiente, usar SupportDiagnoser (que pode recorrer ao n8n).
+        """
+
+        from src.core.config import get_settings  # import inline to evitar ciclos
+        from src.services import retriever_local
 
         query = (input.query or "").strip()
         if not query:
@@ -66,44 +83,47 @@ class SupportWorkflow(Workflow):
         if query in self.session_state:
             try:
                 return SupportWorkflowOutput.model_validate(self.session_state[query])
-            except Exception:  # pragma: no cover - cache corruption
+            except Exception:
                 LOGGER.warning("Invalid cached entry for query: %s", query)
 
-        # Step 1: diagnose the support issue
-        diag_data = self.support_diagnoser.diagnose(query)
-        diagnosis = diag_data.get("answer", "")
-        diag_sources = diag_data.get("sources", [])
+        settings = get_settings()
+        index = retriever_local.build_or_load_index(settings.docs_dir, settings.index_path)
+        passages = retriever_local.search(index, query, k=settings.k)
 
-        # Step 2: fetch internal instructions
-        doc_prompt = (
-            f"Instruções internas para: {query}. "
-            "Retorne JSON: {\"steps\": string[], \"sources\": string[]}."
-        )
-        doc_res = self.doc_researcher.agent.run(doc_prompt)
-        doc_content = getattr(doc_res, "content", str(doc_res)).strip()
-        try:
-            doc_json = json.loads(doc_content)
-        except Exception:
-            doc_json = {"steps": [doc_content], "sources": []}
+        if passages:
+            passages_text = [p.text for p in passages]
+            sources_local = [p.path for p in passages]
+            local_data = self.doc_researcher.handle_local(query, passages_text, sources_local)
 
-        recommended = doc_json.get("steps", [])
-        if isinstance(recommended, str):
-            recommended = [recommended]
-        sources_doc = doc_json.get("sources", [])
+            diagnosis = local_data.get("answer", "")
+            diag_sources: list[str] = local_data.get("sources", [])
 
-        output = SupportWorkflowOutput(
-            diagnosis=diagnosis,
-            probable_causes=[diagnosis] if diagnosis else [],
-            recommended_actions=recommended,
-            evidence=diag_sources,
-            sources=list(dict.fromkeys(diag_sources + sources_doc)),
-        )
+            output = SupportWorkflowOutput(
+                diagnosis=diagnosis,
+                probable_causes=[],
+                recommended_actions=[],
+                evidence=diag_sources,
+                sources=diag_sources,
+            )
+        else:
+            # Fallback to SupportDiagnoser (may call n8n)
+            diag_data = self.support_diagnoser.diagnose(query)
+            diagnosis = diag_data.get("answer", "Não encontrado")
+            diag_sources = diag_data.get("sources", [])
+
+            output = SupportWorkflowOutput(
+                diagnosis=diagnosis,
+                probable_causes=[diagnosis] if diagnosis else [],
+                recommended_actions=[],
+                evidence=diag_sources,
+                sources=diag_sources,
+            )
 
         # Cache result by query
         self.session_state[query] = output.model_dump()
         try:
             self.write_to_storage()
-        except Exception as exc:  # pragma: no cover - optional storage
+        except Exception as exc:
             LOGGER.error("Failed to persist workflow session: %s", exc)
 
         return output
