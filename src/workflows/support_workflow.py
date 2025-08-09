@@ -59,7 +59,7 @@ class SupportWorkflow(Workflow):
         self.support_diagnoser = support_diagnoser
         self.doc_researcher = doc_researcher
 
-    def run(self, input: SupportWorkflowInput) -> SupportWorkflowOutput:  # type: ignore[override]
+    def run(self, input=None) -> SupportWorkflowOutput:  # type: ignore[override]
         """Run the workflow for a support query.
 
         Estratégia:
@@ -67,8 +67,21 @@ class SupportWorkflow(Workflow):
         2. Se não houver contexto suficiente, usar SupportDiagnoser (que pode recorrer ao n8n).
         """
 
-        from src.core.config import get_settings  # import inline to evitar ciclos
+        from src.core.config import get_settings  # avoid circular import at top
         from src.services import retriever_local
+
+        # Normalização da entrada para lidar com chamadas do Playground
+        if input is None:
+            raise ValueError("query must not be empty")
+
+        if isinstance(input, str):
+            input = SupportWorkflowInput(query=input)
+        elif isinstance(input, dict):
+            if "query" not in input or not input["query"]:
+                raise ValueError("query must not be empty")
+            input = SupportWorkflowInput(**input)
+        elif not isinstance(input, SupportWorkflowInput):
+            raise ValueError("invalid input type")
 
         query = (input.query or "").strip()
         if not query:
